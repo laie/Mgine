@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup
+    Condition="'$(JustCopyBeforeTargets)' == '' and '$(JustCopyAfterTargets)' == '' and '$(ConfigurationType)' != 'Makefile'">
+    <JustCopyBeforeTargets></JustCopyBeforeTargets>
+    <JustCopyAfterTargets>BuildLink</JustCopyAfterTargets>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <JustCopy>
+      <OutputFileName>$(OutDir)\%(RelativeDir)\%(Filename)%(Extension)</OutputFileName>
+      <CommandLineTemplate>mkdir "$(OutDir)\%(RelativeDir)\"
+copy /Y "[Inputs]" "$(OutDir)\%(RelativeDir)\%(Filename)%(Extension)"</CommandLineTemplate>
+      <ExecutionDescription>Copying [Inputs]...</ExecutionDescription>
+    </JustCopy>
+  </ItemDefinitionGroup>
+</Project>

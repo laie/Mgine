@@ -1,0 +1,1079 @@
+texture		texSamplerA,
+			texSamplerB,
+			texSamplerC,
+			texBackBuffer,
+			texNoiseA;
+
+sampler SamplerA =
+sampler_state
+{
+    Texture = <texSamplerA>;
+};
+
+sampler SamplerB = 
+sampler_state
+{
+	Texture = <texSamplerB>;
+};
+
+sampler SamplerC = 
+sampler_state
+{
+	Texture = <texSamplerC>;
+};
+
+sampler BackBuffer = 
+sampler_state
+{
+	Texture = <texBackBuffer>;
+};
+
+sampler NoiseA =
+sampler_state
+{
+	Texture = <texNoiseA>;
+    AddressU = Mirror;
+    AddressV = Mirror;
+};
+
+sampler SourceA =
+sampler_state
+{
+	Texture = <texSourceA>;
+    AddressU = Mirror;
+    AddressV = Mirror;
+};
+
+
+float fProgress;
+float fAmount;
+int iSeed;
+
+float2 Viewport;
+float2 Origin;
+float2 Location;
+float2 ViewportRatio;
+float2 TextureRatio;
+float2 UnitViewport;
+float2 UnitTexture;
+float2 RenderTargetBox;
+float PI;
+float4x4 MatrixProjection; // TODO: World * View * Projection matrix
+
+
+
+
+struct VS_INPUT
+{
+	float4 Position : POSITION;
+	float2 TexCoord : TEXCOORD0;
+};
+
+struct PS_INPUT
+{
+    float4 Position : POSITION;   // position of the vertex
+    float4 Diffuse  : COLOR0;     // diffuse color of the vertex
+    float2 Coord : TEXCOORD0;  // typical texture coords stored here
+};
+
+
+
+void VsDefault(	inout float4 Color : COLOR0,
+				inout float2 TexCoord : TEXCOORD0,
+				inout float4 Position : POSITION0 )
+{
+	/*Position.Xy += float2(-0.5, -0.5);
+	//Position.Xy = 0;
+	Position.Xy /= Viewport;
+	Position.Xy *= float2(2, -2);
+	Position.Xy -= float2(1, -1);*/
+	Position = mul(Position, MatrixProjection);
+}
+
+
+float4 PsFlicker(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float rnd1, rnd2;
+	float4 retcolor;
+
+	rnd1 = sin(iSeed+fProgress*777.777)*777.777;
+	rnd1 = fmod(rnd1, 0.05);
+	
+	rnd2 = sin(iSeed+500+rnd1+fProgress*777.777)*777.777;
+	rnd2 = fmod(rnd2, 0.05);
+
+	retcolor = tex2D(SamplerA, TexCoord);
+	retcolor += tex2D(SamplerA, float2(TexCoord.x + rnd1, TexCoord.y + rnd2));
+
+	retcolor /= 2;
+
+    return retcolor; //float4(0, 0, 0.4, 0.5);
+}
+
+float4 PsNoiseHaze(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float rnd1, rnd2;
+	float4 retcolor;
+
+	rnd1 = sin(iSeed+4444 + (TexCoord.x+TexCoord.y*2)*7.77 +fProgress*777.777)*777.777;
+	rnd1 = fmod(rnd1, 0.01);
+
+	rnd2 = sin(iSeed+500 +(TexCoord.x+TexCoord.y*2)*7.77 +rnd1+fProgress*777.777)*777.777;
+	rnd2 = fmod(rnd2, 0.01);
+
+	retcolor = tex2D(SamplerA, TexCoord);
+	retcolor += tex2D(SamplerA, float2(TexCoord.x + rnd1, TexCoord.y + rnd2));
+
+	retcolor /= 2;
+
+    return retcolor; //float4(0, 0, 0.4, 0.5);
+}
+
+float4 PsNoise(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float rnd = ((float)iSeed+2000) * fProgress * sin(fProgress + TexCoord.x + TexCoord.y) * TexCoord.x*TexCoord.y;//TexCoord.xy;
+	rnd = fmod(rnd, 77) * fmod(rnd,13);
+	
+
+	float2 targetcoord = float2(fmod(rnd, 0.01)-0.005,
+								fmod(rnd, 0.01+0.002)-0.006
+								);
+	float4 Color = tex2D(SamplerA, TexCoord + targetcoord);
+	
+    return Color;
+}
+
+int DivPixelX(float X)
+{
+	return (int)(X * Viewport.x);
+}
+
+int DivPixelY(float Y)
+{
+	return (int)(Y * Viewport.y);
+}
+
+int Remainder(int Num, int Div){
+	return Num - (Num / Div) * Div;
+}
+
+float4 PsScanDistortFlashing1(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float4 color;
+	float2 targetcoord;
+
+	int calctmp = Remainder(DivPixelX(TexCoord.x) + DivPixelY(TexCoord.y) + (int)(fProgress * 200), 200);
+	
+	if( 0 <= calctmp && calctmp <= 4 ){
+		float alpha;
+
+		targetcoord = TexCoord;
+		targetcoord.x -= (float)calctmp / Viewport.x;
+		targetcoord.y -= (float)calctmp / Viewport.y;
+		alpha = tex2D(SamplerA, targetcoord).a;
+		
+		if( alpha ){
+			alpha = (1+sin(tex2D(SamplerA, TexCoord).a + calctmp))/2 * tex2D(SamplerA, TexCoord).a/**/ + cos(fProgress*6.283)/5;
+			return 1*alpha + tex2D(SamplerA, targetcoord)*(1-alpha);
+		}
+	}
+
+
+	return tex2D(SamplerA, TexCoord);
+}
+
+float4 PsScanDistortFlashing2(float2 TexCoord : TEXCOORD0) : COLOR0 // 위보다 좀더 확실
+{
+	float4 color;
+	float2 targetcoord;
+
+	int calctmp = Remainder(DivPixelX(TexCoord.x) + DivPixelY(TexCoord.y) + (int)(fProgress * 200), 200);
+	
+	if( 0 <= calctmp && calctmp <= 4 ){
+		float alpha;
+
+		targetcoord = TexCoord;
+		targetcoord.x -= (float)calctmp / Viewport.x;
+		targetcoord.y -= (float)calctmp / Viewport.y;
+		alpha = tex2D(SamplerA, targetcoord).a;
+		
+		if( alpha ){
+			alpha = (1+sin(tex2D(SamplerA, TexCoord).a + calctmp*1.5))/2 - 0.4 + cos(fProgress*6.283)/5;
+			return 1*alpha + tex2D(SamplerA, targetcoord)*(1-alpha);
+		}
+	}
+
+
+	return tex2D(SamplerA, TexCoord);
+}
+
+float4 PsScanDistortFlashing3(float2 TexCoord : TEXCOORD0) : COLOR0 // 줄이 길다
+{
+	float4 color;
+	float2 targetcoord;
+
+	int calctmp = Remainder(DivPixelX(TexCoord.x) + DivPixelY(TexCoord.y) + (int)(fProgress * 200), 200);
+	
+	if( 0 <= calctmp && calctmp <= 6 ){
+		float alpha;
+
+		targetcoord = TexCoord;
+		targetcoord.x -= (float)calctmp / Viewport.x;
+		targetcoord.y -= (float)calctmp / Viewport.y;
+		alpha = tex2D(SamplerA, targetcoord).a;
+		
+		if( alpha ){
+			alpha = (1+sin(tex2D(SamplerA, TexCoord).a + calctmp*1.5))/2 - 0.5 + cos(fProgress*6.283)/5;
+			return 1*alpha + tex2D(SamplerA, targetcoord)*(1-alpha);
+		}
+	}
+
+
+	return tex2D(SamplerA, TexCoord);
+}
+
+float4 PsTransitionReversalLineRotation1(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	int calctmp = Remainder((DivPixelX(TexCoord.x) * sin(fProgress)*1 + DivPixelY(TexCoord.y) * cos(fProgress)*1 + fProgress*300 + iSeed)*5, 100);
+	if( calctmp <= fProgress*100 ){
+		float alpha = fProgress;
+		return 1*fProgress + (1-tex2D(SamplerA, TexCoord))*(1-fProgress);
+	}
+	return tex2D(SamplerA, TexCoord);
+}
+
+float4 PsTransitionReversalLine1(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	int calctmp = Remainder((DivPixelX(TexCoord.x) + DivPixelY(TexCoord.y) + fProgress*300 + iSeed)*5, 100);
+	if( calctmp <= fProgress*100 ){
+		float alpha = fProgress;
+		return 1*fProgress + (1-tex2D(SamplerA, TexCoord))*(1-fProgress);
+	}
+	return tex2D(SamplerA, TexCoord);
+}
+
+float4 PsTransitionReversalLine2(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	int calctmp = Remainder((DivPixelX(TexCoord.x)*TexCoord.y + DivPixelY(TexCoord.y) + fProgress*300 + iSeed)*5, 100);
+	if( calctmp <= fProgress*100 ){
+		float alpha = fProgress;
+		return 1*fProgress + (1-tex2D(SamplerA, TexCoord))*(1-fProgress);
+	}
+	return tex2D(SamplerA, TexCoord);
+}
+
+float4 PsTransitionReversalLine3(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	int calctmp = Remainder((DivPixelX(TexCoord.x)*TexCoord.x + DivPixelY(TexCoord.y) + fProgress*300 + iSeed)*5, 100);
+	if( calctmp <= fProgress*100 ){
+		float alpha = fProgress;
+		return 1*fProgress + (1-tex2D(SamplerA, TexCoord))*(1-fProgress);
+	}
+	return tex2D(SamplerA, TexCoord);
+}
+
+float4 PsTransitionReversalLine4(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	int calctmp = Remainder((DivPixelX(TexCoord.x) + DivPixelY(TexCoord.y)*TexCoord.x + fProgress*300 + iSeed)*5, 100);
+	if( calctmp <= fProgress*100 ){
+		float alpha = fProgress;
+		return 1*fProgress + (1-tex2D(SamplerA, TexCoord))*(1-fProgress);
+	}
+	return tex2D(SamplerA, TexCoord);
+}
+
+float4 PsTransitionReversalLine5(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	int calctmp = Remainder((DivPixelX(TexCoord.x)*TexCoord.y + DivPixelY(TexCoord.y)*TexCoord.y + fProgress*300 + iSeed)*5, 100);
+	if( calctmp <= fProgress*100 ){
+		float alpha = fProgress;
+		return 1*fProgress + (1-tex2D(SamplerA, TexCoord))*(1-fProgress);
+	}
+	return tex2D(SamplerA, TexCoord);
+}
+
+float4 PsTransitionReversalShape1(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	int calctmp = Remainder((DivPixelX(TexCoord.x) + DivPixelY(TexCoord.y) * Viewport.x + sqrt(fProgress)*500 + iSeed + sin(TexCoord.x*6.283)*200 + sin(TexCoord.y*6.283)*200)*3, 100);
+	if( calctmp <= fProgress*100 ){
+		float alpha = fProgress;
+		return 1*fProgress + (1-tex2D(SamplerA, TexCoord))*(1-fProgress);
+	}
+	return tex2D(SamplerA, TexCoord);
+}
+
+float4 PsLoopDiamond1(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float2 coord = TexCoord;
+	coord.xy -= 0.5f;
+
+	coord.x *= Viewport.x / 80;
+	coord.y *= Viewport.y / 80;
+
+	if( (abs(sin(coord.x*coord.x) + cos(coord.y) - sin(coord.x*coord.y + 6.283*fProgress)) <= 0.1) ){
+		return float4(1,1,1,1);
+	}
+	else
+		return tex2D(SamplerA, TexCoord);
+}
+
+float4 PsLoopCenterWarterRefraction1(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float2 coord = TexCoord;
+	coord.xy -= 0.5f;
+
+	coord.x *= Viewport.x / 80;
+	coord.y *= Viewport.y / 80;
+
+	
+	double calctmp = sin(tan(coord.x*coord.x) + sin(coord.y*coord.y) + coord.x*coord.x*coord.x + 6.28318*-fProgress)*cos(coord.x*coord.x + coord.y*coord.y + 6.28318*-fProgress);
+	if( calctmp < 0.4
+		&& 0 < calctmp ){
+		return tex2D(SamplerA, TexCoord-0.01);
+	}
+	else
+		return tex2D(SamplerA, TexCoord);
+}
+
+float4 PsIndicating1(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	int calctmp = Remainder((DivPixelX(TexCoord.x) + DivPixelY(TexCoord.y) * Viewport.x + sqrt(fProgress)*500 + iSeed + sin(TexCoord.x*6.283)*200 + sin(TexCoord.y*6.283)*200)*3, 100);
+	if( calctmp <= fProgress*100 ){
+		float alpha = fProgress;
+		return 1*fProgress + (1-tex2D(SamplerA, TexCoord))*(1-fProgress);
+	}
+	return tex2D(SamplerA, TexCoord);
+}
+
+float4 PsIndicatingNoiseBlackWhite1(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float x = TexCoord.x + 0.2f*(sin(TexCoord.x*850325*2*PI))*(1-fProgress*fProgress);
+	float y = TexCoord.y + 0.2f*(sin(TexCoord.y*3205*2*PI))*(1-fProgress*fProgress);
+	float4 ret = 
+		tex2D(SamplerA, 
+			float2(
+				x,
+				y// + sin(TexCoord.x*2*PI*fProgress+fProgress*2*PI)*(1-fProgress)*0.18f 
+				)
+		);
+	if ( (int)((x+y+fProgress)*1333) % 10 < 8 )
+	{
+		float prog = fProgress;
+		if ( prog > 0.5 ) prog = 1.-prog;
+		ret += (float4(0.1,0.1,0.1, 0.2)-ret.r*ret.g*ret.b-ret)*(1-prog*prog);
+	} else {
+		float prog = fProgress;
+		if ( prog > 0.5 ) prog = 1.-prog;
+		ret += (ret.a*ret.r*ret.g*ret.b*fProgress*0.5+ret.r*ret.g*ret.b-ret)*(1-prog*prog);
+	}
+	return ret;
+}
+
+float4 PsDisappearingNoise1(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float4 ret = 
+		tex2D(SamplerA, 
+			float2(TexCoord.x + 0.1f*sin(TexCoord.x*850325*2*PI*fProgress)*(1-(1-fProgress)*(1-fProgress)),
+				TexCoord.y + 0.1f*sin(TexCoord.y*3205*2*PI*fProgress)*(1-(1-fProgress)*(1-fProgress)))
+		);
+	ret += (ret.a*(1-fProgress+sin(TexCoord.x*2*PI))-ret)*(1-(1-fProgress));
+	ret.a *= (1-fProgress)*(1-fProgress);
+	return ret;
+}
+
+
+
+float4 PsBlurH(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float xpix = 1 / Viewport.x;
+	float4 color =	tex2D(SamplerA, float2(TexCoord.x-xpix*4, TexCoord.y))
+				+	tex2D(SamplerA, float2(TexCoord.x-xpix*3, TexCoord.y))
+				+	tex2D(SamplerA, float2(TexCoord.x-xpix*2, TexCoord.y))
+				+	tex2D(SamplerA, float2(TexCoord.x-xpix, TexCoord.y))
+				+	tex2D(SamplerA, float2(TexCoord.x, TexCoord.y))
+				+	tex2D(SamplerA, float2(TexCoord.x+xpix, TexCoord.y))
+				+	tex2D(SamplerA, float2(TexCoord.x+xpix*2, TexCoord.y))
+				+	tex2D(SamplerA, float2(TexCoord.x+xpix*3, TexCoord.y))
+				+	tex2D(SamplerA, float2(TexCoord.x+xpix*4, TexCoord.y));
+
+	color /= 9;
+	//if ( color.a || color.r || color.g || color.b ) return 1;
+	return color;
+}
+
+float4 PsBlurV(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float ypix = 1 / Viewport.y;
+	float4 color =	tex2D(SamplerA, float2(TexCoord.x, TexCoord.y-ypix*4))
+				+	tex2D(SamplerA, float2(TexCoord.x, TexCoord.y-ypix*3))
+				+	tex2D(SamplerA, float2(TexCoord.x, TexCoord.y-ypix*2))
+				+	tex2D(SamplerA, float2(TexCoord.x, TexCoord.y-ypix))
+				+	tex2D(SamplerA, float2(TexCoord.x, TexCoord.y))
+				+	tex2D(SamplerA, float2(TexCoord.x, TexCoord.y+ypix))
+				+	tex2D(SamplerA, float2(TexCoord.x, TexCoord.y+ypix*2))
+				+	tex2D(SamplerA, float2(TexCoord.x, TexCoord.y+ypix*3))
+				+	tex2D(SamplerA, float2(TexCoord.x, TexCoord.y+ypix*4));
+
+	color /= 9;
+
+	return color;
+}
+
+float4 PsTransitionTensionTVShutdown1(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float4 color = tex2D(SamplerA, TexCoord);
+	color += color.a*sin(TexCoord.y*50+fProgress*6.283*5+sin(TexCoord.x*6.283*fProgress)*tan(fProgress*6.283+3))/8;
+	color *= (cos(TexCoord.y*200)+1)*0.8*fProgress;
+	color *= 1/sin(fProgress*3.14159);
+	color.b *= 1.1+0.1*fProgress;
+	return color;
+}
+
+
+float4 PsColorNoiseTone1(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float4 color = tex2D(SamplerA, TexCoord);
+	color.r *= sin(TexCoord.y*100)*2;
+	color.g *= cos(TexCoord.y*200)*2;
+	color.b *= sin(TexCoord.y*300)*2;
+	return color;
+}
+
+float4 PsRapidSpacing1(float2 TexCoord : TEXCOORD0) : COLOR0 // 좌상 -> 우하 반전되서 출력
+{
+	float2 targetcoord;
+	targetcoord = TexCoord;
+
+	targetcoord.x -= 0.5;
+	targetcoord.x = sin(fProgress*6.283) * targetcoord.x;
+	targetcoord.y -= 0.5;
+	targetcoord.y = sin(fProgress*6.283) * targetcoord.y;
+		
+	return tex2D(SamplerA, targetcoord);
+}
+
+float4 PsRapidSpacing2(float2 TexCoord : TEXCOORD0) : COLOR0 // 왼쪽위 화면만 4번 각각모서리에서 보여줌
+{
+	float2 targetcoord;
+	targetcoord = TexCoord;
+
+	targetcoord.x -= 0.5;
+	targetcoord.x = sin(fProgress*6.283) * targetcoord.x;
+	targetcoord.y -= 0.5;
+	targetcoord.y = cos(fProgress*6.283) * targetcoord.y;
+		
+	return tex2D(SamplerA, targetcoord);
+}
+
+float4 PsRapidSpacing3(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float2 targetcoord;
+	float tmp;
+	targetcoord = TexCoord;
+	float4 color;
+
+	targetcoord = TexCoord;
+	//arcsin() = theta;
+
+	float pi = 3.14159265358979;
+
+	float distance = sqrt((targetcoord.x - 0.5) * (targetcoord.x - 0.5) + (targetcoord.y - 0.5) * (targetcoord.y - 0.5));
+	float theta = atan((targetcoord.y - 0.5) / (targetcoord.x - 0.5));
+	if(targetcoord.x < 0.5) theta += pi;
+
+	theta = acos((targetcoord.x-0.5) / distance);
+	if(targetcoord.y < 0.5) theta = 2*pi-theta;
+	//color = theta / (2*pi);
+
+	//targetcoord.x = 0.5 + (distance * 2) * cos(theta + fProgress * (2 * pi));
+	//targetcoord.y = 0.5 + (distance * 2) * sin(theta + fProgress * (2 * pi));
+	
+	
+	targetcoord.x = distance * 0.5 * (cos(acos(((targetcoord.x)/distance-0.5)*2)*2*pi + fProgress*6.283)+1);
+	targetcoord.y = distance * 0.5 * (sin(asin(((targetcoord.y)/distance-0.5)*2)*2*pi + fProgress*6.283)+1); //0.5 + sin(asin((targetcoord.y-0.5)*2)+fProgress*6.283)/2;
+	
+
+	/*targetcoord.x = 0.5 + distance * (cos(theta + fProgress*6.283));
+	targetcoord.y = 0.5 + distance * (sin(theta + fProgress*6.283));
+	*/
+
+	color = tex2D(SamplerA, targetcoord);
+
+	return color;
+}
+
+float4 PsWaterReflection1(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float2 tcoord = TexCoord;
+
+	float X = (tcoord.x-Origin.x)*Viewport.x;
+	float Y = (tcoord.y-Origin.y)*Viewport.y;
+	float depth = sin( sqrt( X*X + Y*Y )/100 - fProgress*6.283*2 );
+	float reflection;
+
+	float theta = atan((tcoord.y-Origin.y)/(tcoord.x-Origin.y));
+	if(tcoord.x < Origin.x) theta += 3.14159;
+
+	float4 color;
+
+	tcoord.x += depth*cos(theta)/300*fAmount;
+	tcoord.y += depth*sin(theta)/300*fAmount;
+
+	color = tex2D(SamplerA, tcoord);
+	color += color.a*sin(theta)*depth/10;
+
+	return color;
+}
+
+float4 PsWaterReflection2(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	//Fits with 'BlackCircle'
+
+	float2 tcoord = TexCoord;
+	float depth = sqrt((tcoord.x-Origin.x)*(tcoord.x-Origin.x) + (tcoord.y-Origin.y)*(tcoord.y-Origin.y));
+	float theta = atan((tcoord.y-Origin.y)/(tcoord.x-Origin.x));
+	float smot;
+
+	if(tcoord.x < Origin.x) theta += 3.14159;
+
+	if( 0 <= depth && depth < 0.5 ){
+		smot = sin(depth*10+fProgress*6.283);
+		
+		tcoord.x += cos(theta + smot)/10;
+		tcoord.y += sin(theta + smot)/10;
+	}else{	
+	}
+
+	return tex2D(SamplerA, tcoord);
+}
+
+float4 PsWaterReflection3(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	//Fits with 'BlackCircle'
+
+	float2 tcoord = TexCoord;
+	float depth = sqrt((tcoord.x-Origin.x)*(tcoord.x-Origin.x) + (tcoord.y-Origin.y)*(tcoord.y-Origin.y));
+	float theta = atan((tcoord.y-Origin.y)/(tcoord.x-Origin.x));
+	float smot;
+
+	if(tcoord.x < Origin.x) theta += 3.14159;
+
+	if( 0 <= depth && depth < 0.5 ){
+		smot = sin(depth*10+fProgress*6.283);
+		
+		tcoord.x += cos(theta + smot)/10*abs(depth-0.5)*10;
+		tcoord.y += sin(theta + smot)/10*abs(depth-0.5)*10;
+	}else{	
+	}
+
+	return tex2D(SamplerA, tcoord);
+}
+
+
+float4 PsWaterReflection4(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float2 coord = TexCoord*TextureRatio;
+	//coord.xy -= 0.5f;
+
+	//coord.x *= Viewport.x * 0.005;
+	//coord.y *= Viewport.y * 0.005;
+	coord *= ViewportRatio;
+	coord += 1.3;
+
+
+
+	double calctmp = sin(sin(coord.y*coord.y) + coord.x*coord.x*coord.x + PI*2*-fProgress)*cos(coord.x*coord.x + coord.y*coord.y + PI*2*-fProgress)*fAmount;
+		
+	float2 tcoord = TexCoord*TextureRatio;
+
+	//float X = (tcoord.x-Origin.x)*Viewport.x;
+	//float Y = (tcoord.y-Origin.y)*Viewport.y;
+	float depth = (float)(calctmp-0.5)*4;	//sin( sqrt( X*X + Y*Y )/100 - fProgress*PI*2 );
+	float reflection;
+
+	Origin.xy = 0;
+	float theta = atan((tcoord.y-Origin.y)/(tcoord.x-Origin.x));
+	if(tcoord.x < Origin.x) theta += PI;
+
+	float4 color;
+
+	tcoord.x += depth*cos(theta)/300*fAmount;
+	tcoord.y += depth*sin(theta)/300*fAmount;
+
+	color = tex2D(SamplerA, tcoord/TextureRatio);
+	color += color.a*sin(theta)*depth/10;
+	return color;
+
+}
+
+float4 PsFadeBlackWhiteInfection1(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float4 color;
+	color = tex2D(SamplerA, TexCoord);
+	color += sin(fProgress*0.5*3.14159)*2 - sqrt( ((TexCoord.x-Origin.x)*(TexCoord.x-Origin.x)*Viewport.x*Viewport.x + (TexCoord.y-Origin.y)*(TexCoord.y-Origin.y)*Viewport.y*Viewport.y)/((Viewport.y+Viewport.x)*(Viewport.y+Viewport.x)) )/(sqrt(fProgress)*2.5-2.0);
+	color = tex2D(SamplerA, TexCoord)*(1-color.a*fProgress*fProgress) + color*color.a;
+	return color;
+}
+
+
+
+
+
+float4 Screen_Flashing1(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float2 coord = TexCoord;
+	coord *= ViewportRatio;
+	coord += Location;
+	float4 color = tex2D(SamplerA, TexCoord);
+	
+	return color + color.a;
+}
+
+float4 SpritePixelShader_LightInfection1(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float4 color;
+	color = tex2D(SamplerA, TexCoord);
+	float Height = Viewport.y/ViewportRatio.y;
+	float Width = Viewport.x/ViewportRatio.x;
+	color += sin(fProgress*0.5*3.14159)*2 - sqrt( ((TexCoord.x-Origin.x)*(TexCoord.x-Origin.x)*Width*Width + (TexCoord.y-Origin.y)*(TexCoord.y-Origin.y)*Height*Height)/((Height+Width)*(Height+Width)) )/(sqrt(fProgress)*2.5-2.0);
+	color = tex2D(SamplerA, TexCoord)*(1-color.a*fProgress*fProgress) + color*color.a;
+	return color;
+}
+
+float4 Sprite_FillBorder(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float2 UnitViewport; UnitViewport.x = 1/Viewport.x; UnitViewport.y = 1/Viewport.y;
+	float depth;
+	
+	float2 coord = TexCoord;
+	float4 color = tex2D(SamplerA, TexCoord);
+	int suc = 0;
+
+	coord.y -= UnitViewport.y;
+	if ( tex2D(SamplerA, coord).a ) suc++;
+
+	coord.x += UnitViewport.x;
+	if ( tex2D(SamplerA, coord).a ) suc++;
+	coord.x -= UnitViewport.x*2;
+	if ( tex2D(SamplerA, coord).a ) suc++;
+
+	coord.y += UnitViewport.y*2;
+	if ( tex2D(SamplerA, coord).a ) suc++;
+
+	coord.x += UnitViewport.x*2;
+	if ( tex2D(SamplerA, coord).a ) suc++;
+	coord.x -= UnitViewport.x*2;
+	if ( tex2D(SamplerA, coord).a ) suc++;
+
+	coord.y -= UnitViewport.y;
+	coord.x -= UnitViewport.x;
+	if ( tex2D(SamplerA, coord).a ) suc++;
+
+	coord.x += UnitViewport.x*2;
+	if ( tex2D(SamplerA, coord).a ) suc++;
+	
+
+	if ( 0 < suc && suc < 8 ){
+		color = 0.3+0.02*suc;
+	} else if (suc == 8){
+		color = 0.8;
+	}
+
+	return color;
+}
+
+float4 Specific_Logo(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float2 coord = TexCoord*TextureRatio;
+	//return tex2D(SamplerA, coord).a/2;
+	//coord *= ViewportRatio;
+	//return tex2D(SamplerA, TexCoord);
+
+
+	float4 color = tex2D(SamplerA, TexCoord);
+	float or = coord.x*cos(coord.y)*cos(coord.x);
+	float calctmp = sin(or*8 + fProgress*PI*2);
+
+	if ( color.a && calctmp < 0.2 && calctmp > 0 ){
+		color = tex2D(SamplerA, float2(
+		TexCoord.x*TextureRatio.x + cos(calctmp-0.1)*0.2,
+		 TexCoord.y*TextureRatio.y + sin(calctmp-0.1)*0.2) / TextureRatio
+		 );
+		return (color.a + calctmp + sin(fProgress*PI*2+coord.x+coord.y+calctmp*10)*color.a);
+	} else if ( color.a ) {
+		if ( 0.2 <= fProgress && fProgress < 2.0 ){		// 0.2 ~ 2.0
+			fProgress = (fProgress-0.2)*3.3;
+			if ( fProgress > 1 ) fProgress = 1;
+			return color.a*fProgress;
+		} else if ( 2.0 <= fProgress ){					// 2.0 ~
+			return color.a*(3.0-fProgress);
+		}
+
+		return 0;//color;
+	} else {
+		return 0;
+	}
+
+	return 0;
+}
+
+float4 PsIndicatingMultiplySplash1(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float2 coord = TexCoord;
+	float4 bc = tex2D(SamplerA, coord);
+	float degree = (0.8-fProgress)*fAmount;
+	if ( degree < 0 ) degree = 0;
+	degree *= degree;
+
+	float4 shadowc = tex2D(SamplerA, 
+		float2(
+		coord.x+0.08f*degree*cos(coord.y*coord.x*2*PI+coord.x*fProgress*2*PI),
+		coord.y+0.08f*degree*sin(coord.x*2*PI+coord.x*fProgress*2*PI)
+		)
+	);
+
+	if ( 1-fProgress < 0.2 )
+	{
+		float degree = (1-fProgress) / 0.2f;
+		if ( degree < 0 ) degree = 0;
+		bc += ((shadowc.a*bc*shadowc.a*shadowc.a*shadowc.a)-bc)*degree;
+	} else {
+		bc = (shadowc.a*bc*shadowc.a*shadowc.a*shadowc.a);
+	}
+	return bc;
+}
+
+float4 PsIndicatingMultiplySplash2(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float2 coord = TexCoord;
+	float4 bc = tex2D(SamplerA, coord);
+	float degree = (0.8-fProgress)*fAmount;
+	if ( degree < 0 ) degree = 0;
+	degree *= degree;
+
+	float4 shadowc = tex2D(SamplerA, 
+		float2(
+		coord.x+0.2f*degree*cos(coord.y+fProgress*2*PI),
+		coord.y+0.2f*degree*sin(coord.x+fProgress*2*PI)
+		)
+	);
+
+	if ( 1-fProgress < 0.2 )
+	{
+		float degree = (1-fProgress) / 0.2f;
+		if ( degree < 0 ) degree = 0;
+		bc += ((shadowc*bc)-bc)*degree;
+	} else {
+		bc = (shadowc*bc);
+	}
+	return bc;
+}
+
+float4 Sprite_GlowExpand1(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float xpix = UnitTexture.x, ypix = UnitTexture.y;
+	//float xpix = 1/250.0f, ypix = 1.0f/150;
+	float4 color =	tex2D(SamplerA, float2(TexCoord.x-xpix*4, TexCoord.y))
+				+	tex2D(SamplerA, float2(TexCoord.x-xpix*3, TexCoord.y))
+				+	tex2D(SamplerA, float2(TexCoord.x-xpix*2, TexCoord.y))
+				+	tex2D(SamplerA, float2(TexCoord.x-xpix, TexCoord.y))
+				+	tex2D(SamplerA, float2(TexCoord.x, TexCoord.y))
+				+	tex2D(SamplerA, float2(TexCoord.x-xpix, TexCoord.y))
+				+	tex2D(SamplerA, float2(TexCoord.x-xpix*2, TexCoord.y))
+				+	tex2D(SamplerA, float2(TexCoord.x-xpix*3, TexCoord.y))
+				+	tex2D(SamplerA, float2(TexCoord.x-xpix*4, TexCoord.y));
+
+	color /= 9;
+	return color;
+}
+
+float4 Sprite_PostGlowExpand1(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float2 coord = TexCoord;
+	//return float4(tex2D(SamplerB, coord).a + tex2D(SamplerA, coord).a*0.1, 0, tex2D(SamplerB, coord).a, tex2D(SamplerA, coord).a) ;
+	return (tex2D(SamplerA, coord)*0.9 + tex2D(SamplerB, coord).a*0.1);
+}
+
+float4 BackgroundPixelShader(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float2 coord;
+	float color = 0; 
+	float result;
+
+	coord = TexCoord;
+
+	result = sin(coord.x*3.14159*5+coord.y+fProgress*3.14159*25)+1;
+	//if ( result < 0 ) result = -result;
+	//result *= -1;
+	color = (color + result)/2;
+	//result = tex2D(SamplerA, coord)*sin(coord.x*3.14159*5+coord.y);
+	color += (color + result)/2;
+	
+
+
+
+	return float4(color, color, color, color);
+}
+
+float4 Fade_TensionTVShutdown1(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float4 color = tex2D(SamplerA, TexCoord)*(1-fProgress) + tex2D(SamplerB, TexCoord)*fProgress;
+	float4 colororigin = color;
+	color.a += 0.5;
+	float calctmp;
+
+	//return color;
+	
+	color += color.a*sin(TexCoord.y*50+fProgress*6.283*5+sin(TexCoord.x*6.283*fProgress)*tan(fProgress*6.283+3))*1;
+	color *= (cos(TexCoord.y*200)+1)*0.8*fProgress;
+	color *= 1/sin(fProgress*3.14159);
+	//color.b *= 1.1+0.1*fProgress;
+
+	if ( color.a > 1 ) color.a = 1;
+	if ( color.r > 1 ) color.r = 1;
+	if ( color.g > 1 ) color.g = 1;
+	if ( color.b > 1 ) color.b = 1;
+	
+	if ( color.a < 0 ) color.a = 0;
+	if ( color.r < 0 ) color.r = 0;
+	if ( color.g < 0 ) color.g = 0;
+	if ( color.b < 0 ) color.b = 0;
+
+	calctmp = (color.a+color.r+color.g+color.b)/4;
+	color = color*(1-calctmp) + (tex2D(SamplerA, TexCoord)*(1-calctmp) + tex2D(SamplerB, TexCoord)*calctmp)*calctmp;
+	
+	if ( color.a > 1 ) color.a = 1;
+	if ( color.r > 1 ) color.r = 1;
+	if ( color.g > 1 ) color.g = 1;
+	if ( color.b > 1 ) color.b = 1;
+	
+	if ( color.a < 0 ) color.a = 0;
+	if ( color.r < 0 ) color.r = 0;
+	if ( color.g < 0 ) color.g = 0;
+	if ( color.b < 0 ) color.b = 0;
+
+
+	if ( fProgress < 0.1 )
+		color = color*(fProgress*10) + colororigin*(1-fProgress*10);
+	if ( 0.92 <= fProgress ){
+		float ftmp = fProgress;
+		ftmp = (fProgress - 0.92)*12.5;
+		if ( ftmp > 1 ) ftmp = 1;
+		//return tex2D(SamplerB, TexCoord);
+		color = color*(1-ftmp) + colororigin*ftmp;
+	}
+	return color;
+}
+
+
+
+float4 FxFire(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	/*/////////////////////////////////////////////
+	//		Parameters
+	//			fProgress	for Progress
+	//			NoiseA		for Noise Texture
+	//			SourceA	for Fire Texture
+	//			SamplerC	for Alpha Texture
+	*//////////////////////////////////////////////
+
+	float4 noise1, noise2, noise3;
+	float4 finalNoise;
+	float perturb;
+	float2 noiseCoords;
+	float4 fireColor;
+	float4 alphaColor;
+	float distortionScale = 0.8;
+	float distortionBias = 0.5;
+	
+	float2	distortion1 = float2(0.1, 0.2),
+			distortion2 = float2(0.1, 0.3),
+			distortion3 = float2(0.1, 0.1);
+
+	float2	texCoords1,
+			texCoords2,
+			texCoords3;
+
+	
+	texCoords1 = (TexCoord * 1);
+	texCoords1.y = texCoords1.y + (fProgress * 1.73);
+
+	texCoords2 = (TexCoord * 2);
+	texCoords2.y = texCoords2.y + (fProgress * 1.91);
+
+	texCoords3 = (TexCoord * 3);
+	texCoords3.y = texCoords3.y + (fProgress * 1.68);
+
+
+    noise1 = tex2D(NoiseA, texCoords1);
+    noise2 = tex2D(NoiseA, texCoords2);
+	noise3 = tex2D(NoiseA, texCoords3);
+    noise1 = (noise1 - 0.5f) * 2.0f;
+    noise2 = (noise2 - 0.5f) * 2.0f;
+    noise3 = (noise3 - 0.5f) * 2.0f;
+
+
+	noise1.xy = noise1.xy * distortion1.xy;
+	noise2.xy = noise2.xy * distortion2.xy;
+	noise3.xy = noise3.xy * distortion3.xy;
+
+	finalNoise = noise1 + noise2 + noise3;
+
+	perturb = ((1.0f - TexCoord.y) * distortionScale) + distortionBias;
+	perturb = 1;
+	
+	noiseCoords.xy = (finalNoise * perturb) + TexCoord;
+
+    fireColor = tex2D(SourceA, noiseCoords);
+    alphaColor = tex2D(SamplerC, noiseCoords);
+
+	fireColor.a = alphaColor + fireColor.r-0.5;
+		
+    return fireColor;
+}
+
+float4 FxBackgroundNoise1(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	/*/////////////////////////////////////////////
+	//		Parameters
+	//			fProgress	for Progress
+	//			NoiseA		for Noise Texture
+	*//////////////////////////////////////////////
+	float2	noiseCoord1,
+			noiseCoord2,
+			noiseCoord3,
+			noiseCoord4;
+
+	float4	noise1,
+			noise2,
+			noise3,
+			noise4;
+
+	
+	noiseCoord1 = TexCoord;
+	noiseCoord2 = (TexCoord-0.42)*3.1;
+	noiseCoord3 = (TexCoord-0.13)*2.2;
+	noiseCoord4 = TexCoord*1.2;
+
+	noiseCoord1.x += fProgress*0.118;
+	noiseCoord2.x -= fProgress*0.925*0.5;
+	noiseCoord3.x -= fProgress*0.289;
+	noiseCoord4.x += fProgress*0.434;
+
+	noiseCoord1.x *= 0.6;
+	noiseCoord1.y *= 0.9;
+	noiseCoord2.x *= 1.5;
+	noiseCoord2.y *= 0.5;
+	noiseCoord3.x *= 0.4;
+	noiseCoord3.y *= 0.5;
+	noiseCoord4.x *= 0.8;
+	noiseCoord4.y *= 0.6;
+
+	noiseCoord1.x += sin(TexCoord.x*2+5.0);
+	noiseCoord1.y += sin(TexCoord.x*2+1.5+PI)*0.2;
+
+	noiseCoord2.x -= (sin(TexCoord.x*2-4.0)+0.5)*2 + sin(TexCoord.x*2-4.0+PI)*0.8;
+	noiseCoord2.y += sin(TexCoord.x*2-4.0+PI)*0.4*90;
+
+	noiseCoord3.x -= (sin(TexCoord.x*1.5-3.0)+0.5)*0.5;
+	noiseCoord3.y -= sin(TexCoord.x*2-4.0+PI)*0.4*160;
+
+	noiseCoord4.x += sin(TexCoord.x*2.5-7.5)*2;
+	noiseCoord4.y -= sin(TexCoord.x*2-4.0+PI)*0.4;
+
+	noise1 = tex2D(NoiseA, noiseCoord1);
+	noise2 = tex2D(NoiseA, noiseCoord2);
+	noise3 = tex2D(NoiseA, noiseCoord3);
+	noise4 = tex2D(NoiseA, noiseCoord4);
+
+	noise1 = (noise1-0.5)*2;
+	noise2 = (noise2-0.5)*2;
+	noise3 = (noise3-0.5)*2;
+	noise4 = (noise4-0.5)*2;
+
+	float noiseFinal = (noise1 + noise2 + noise3 + noise4)/4;
+	return noiseFinal;
+}
+
+float4 FxMainSelector1(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	//return tex2D(SamplerA, TexCoord);
+	float4 color = PsBlurH(TexCoord);
+	float4 originalcolor = tex2D(SamplerA, TexCoord);
+
+	//color.a = color.rgb;
+	//color.rgb = 1;
+
+	if ( color.a ){
+		color.argb *= 1.6;
+		//return color.r;
+	}
+	if ( originalcolor.a ){
+		color.argb *= 1.6;
+	}
+	
+	return float4(color.r, color.g, color.b, color.a);
+}
+
+float4 FxScreenBlur1(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float4 color = tex2D(SamplerA, TexCoord);
+	return float4(color.r/fAmount, color.g/fAmount, color.b/fAmount, color.a/fAmount);
+}
+
+float4 PsSoundLifeGenuineBeatCircle(float2 TexCoord : TEXCOORD0) : COLOR0
+{
+	float radiusInner = (150.*UnitTexture.x),
+		radiusOuter   = (300.*UnitTexture.x);
+	float distance = sqrt((TexCoord.x - 0.5) * (TexCoord.x - 0.5) + (TexCoord.y - 0.5) * (TexCoord.y - 0.5));
+	float testlinerad = 13.*UnitTexture.x;
+	float degree = fmod(
+						(1-fProgress)*(radiusOuter-radiusInner)
+							+testlinerad/2
+							+distance
+							-radiusInner+radiusOuter - radiusInner,
+						radiusOuter - radiusInner);
+	//if ( degree < 0 ) degree += 1-fmod(-degree, 1);
+	float color = (degree-testlinerad)/(radiusOuter-radiusInner-testlinerad);
+	color = color*color*color*color*0.2;
+	float alpha = color*3;
+	if ( degree < testlinerad && degree/testlinerad < 0.8 )
+	{
+		float vel = (degree/testlinerad), velinner, velouter;
+		if ( vel > 0.5 )
+			vel = (1-vel-0.2)/0.6;
+		vel *= 2;
+		if ( 0.5 < vel )
+		{
+			vel *= vel;
+			vel *= 0.75+vel;
+			velinner = vel*vel*vel*vel;
+			velouter = 1-(1-vel)*(1-vel)*(1-vel);
+		}
+		else
+		{
+			vel = 0.25;
+			velinner = vel*vel*vel*vel;
+			velouter = 1-(1-vel)*(1-vel)*(1-vel);
+		}
+		if ( 0.7 < degree/testlinerad )
+		{
+			alpha *= 1-(degree/testlinerad-0.7)*10;
+			velouter *= 1-(degree/testlinerad-0.7)*10;
+		}
+
+		if ( distance < radiusInner /*|| radiusOuter <= distance*/ )
+		{
+			float degreereal = (distance)/(radiusInner);
+			degreereal *= degreereal*degreereal*degreereal;
+			color += (0.3+degreereal*0.5+velinner*(degreereal))*velouter*degreereal;
+			return float4(color, color, color, (0.3+velinner+degreereal*0.3)*velouter+alpha);
+		}
+		color += (0.8+velinner)*velouter;
+		return float4(color, color, color, (0.6+velinner)*velouter+alpha);
+	} else
+	{
+		return float4(color, color, color, alpha);
+	}
+	
+}

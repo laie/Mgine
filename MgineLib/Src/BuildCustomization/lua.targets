@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <PropertyPageSchema
+      Include="$(MSBuildThisFileDirectory)$(MSBuildThisFileName).xml" />
+      <AvailableItemName Include="Lua">
+        <Targets>_Lua</Targets>
+      </AvailableItemName>
+  </ItemGroup>
+  <UsingTask
+    TaskName="Lua"
+    TaskFactory="XamlTaskFactory"
+    AssemblyName="Microsoft.Build.Tasks.v4.0">
+    <Task>$(MSBuildThisFileDirectory)$(MSBuildThisFileName).xml</Task>
+  </UsingTask>
+  <Target
+    Name="_Lua"
+    BeforeTargets="$(LuaBeforeTargets)"
+    AfterTargets="$(LuaAfterTargets)"
+    Condition="'@(Lua)' != ''"
+    Outputs="%(Lua.OutputFileName)"
+    Inputs="%(Lua.Identity);%(Lua.AdditionalDependencies);$(MSBuildProjectFile)"
+    DependsOnTargets="_SelectedFiles">
+    <ItemGroup Condition="'@(SelectedFiles)' != ''">
+      <Lua Remove="@(Lua)" Condition="'%(Identity)' != '@(SelectedFiles)'" />
+    </ItemGroup>
+    <Message
+      Importance="High"
+      Text="%(Lua.ExecutionDescription)" />
+    <WriteLinesToFile
+      Condition="'@(Lua_tlog)' != '' and '%(Lua_tlog.ExcludedFromBuild)' != 'true'"
+      File="$(IntDir)$(ProjectName).write.1.tlog"
+      Lines="^%(Lua_tlog.Source);@(Lua_tlog-&gt;'%(Fullpath)')"/>
+    <Lua
+      Condition="'@(Lua)' != '' and '%(Lua.ExcludedFromBuild)' != 'true'"
+      CommandLineTemplate="%(Lua.CommandLineTemplate)"
+      AdditionalOptions="%(Lua.AdditionalOptions)"
+      Inputs="%(Lua.Identity)" />
+  </Target>
+</Project>

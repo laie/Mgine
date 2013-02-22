@@ -1,0 +1,227 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Mgine">
+      <UniqueIdentifier>{d695cadc-578b-413d-87a6-ef0b37795759}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Mgine\Code">
+      <UniqueIdentifier>{ed70123c-1665-48bd-846e-3bd87a3a025f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Mgine\Header">
+      <UniqueIdentifier>{90398d59-109b-4bc9-8a17-16725ecf19d2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader">
+      <UniqueIdentifier>{c61c6545-4cd3-493b-b720-84ecbbdbfdf9}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Src\Shader\Shader.sdr">
+      <Filter>Shader</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Src\Collision.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Component.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Data.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\DeviceResource.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Engine.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\EnhancedNative.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Event.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Exception.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\FFT.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Function.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\GameObject.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Input.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\LocalSetting.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Log.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Mgine.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Music.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Network.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Ptp.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Renderer.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Screen.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Script.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Security.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Sound.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Declaration.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Animation.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Sequencer.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\SoundFile.h">
+      <Filter>Mgine</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\SoundFileDefault.h">
+      <Filter>Mgine</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\SoundFileMp3.h">
+      <Filter>Mgine</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\SoundFileOgg.h">
+      <Filter>Mgine</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\SoundFileOggStbVorbis.h">
+      <Filter>Mgine</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\StdAfx.hpp">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\MgineDefendencies.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\cpputil\Util.h">
+      <Filter>Mgine\Header</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Src\Camera2D.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Collision.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Component.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Data.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DeviceResource.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Effect.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Engine.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Event.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Exception.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\FFT.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Font.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Function.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GameObject.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\IndexBuffer.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Input.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\LocalSetting.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Log.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Music.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Network.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Renderer.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Screen.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Script.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Security.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Sound.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Texture.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Declaration.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Animation.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\SoundFile.cpp">
+      <Filter>Mgine</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\SoundFileDefault.cpp">
+      <Filter>Mgine</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\SoundFileMp3.cpp">
+      <Filter>Mgine</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\SoundFileOgg.cpp">
+      <Filter>Mgine</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\SoundFileOggStbVorbis.c">
+      <Filter>Mgine</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\StdAfx.cpp">
+      <Filter>Mgine\Code</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

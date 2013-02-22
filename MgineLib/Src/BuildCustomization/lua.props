@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup
+    Condition="'$(LuaBeforeTargets)' == '' and '$(LuaAfterTargets)' == '' and '$(ConfigurationType)' != 'Makefile'">
+    <LuaBeforeTargets></LuaBeforeTargets>
+    <LuaAfterTargets>BuildLink</LuaAfterTargets>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <Lua>
+      <ParseOnly>false</ParseOnly>
+      <StripDebugInfo>true</StripDebugInfo>
+      <OutputFileName>$(OutDir)\%(RelativeDir)\%(Filename).luac</OutputFileName>
+      <CommandLineTemplate>mkdir "$(OutDir)\%(RelativeDir)\"
+luac.bat [AllOptions] [AdditionalOptions] -o "$(OutDir)\%(RelativeDir)\%(Filename).luac" "[Inputs]"</CommandLineTemplate>
+      <ExecutionDescription>Luaing [Inputs]...</ExecutionDescription>
+    </Lua>
+  </ItemDefinitionGroup>
+</Project>

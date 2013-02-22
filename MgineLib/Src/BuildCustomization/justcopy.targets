@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <PropertyPageSchema
+      Include="$(MSBuildThisFileDirectory)$(MSBuildThisFileName).xml" />
+      <AvailableItemName Include="JustCopy">
+        <Targets>_JustCopy</Targets>
+      </AvailableItemName>
+  </ItemGroup>
+  <UsingTask
+    TaskName="JustCopy"
+    TaskFactory="XamlTaskFactory"
+    AssemblyName="Microsoft.Build.Tasks.v4.0">
+    <Task>$(MSBuildThisFileDirectory)$(MSBuildThisFileName).xml</Task>
+  </UsingTask>
+  <Target
+    Name="_JustCopy"
+    BeforeTargets="$(JustCopyBeforeTargets)"
+    AfterTargets="$(JustCopyAfterTargets)"
+    Condition="'@(JustCopy)' != ''"
+    Outputs="%(JustCopy.OutputFileName)"
+    Inputs="%(JustCopy.Identity);%(JustCopy.AdditionalDependencies);$(MSBuildProjectFile)"
+    DependsOnTargets="_SelectedFiles">
+    <ItemGroup Condition="'@(SelectedFiles)' != ''">
+      <JustCopy Remove="@(JustCopy)" Condition="'%(Identity)' != '@(SelectedFiles)'" />
+    </ItemGroup>
+    <Message
+      Importance="High"
+      Text="%(JustCopy.ExecutionDescription)" />
+    <WriteLinesToFile
+      Condition="'@(JustCopy_tlog)' != '' and '%(JustCopy_tlog.ExcludedFromBuild)' != 'true'"
+      File="$(IntDir)$(ProjectName).write.1.tlog"
+      Lines="^%(JustCopy_tlog.Source);@(JustCopy_tlog-&gt;'%(Fullpath)')"/>
+    <JustCopy
+      Condition="'@(JustCopy)' != '' and '%(JustCopy.ExcludedFromBuild)' != 'true'"
+      CommandLineTemplate="%(JustCopy.CommandLineTemplate)"
+      AdditionalOptions="%(JustCopy.AdditionalOptions)"
+      Inputs="%(JustCopy.Identity)" />
+  </Target>
+</Project>
